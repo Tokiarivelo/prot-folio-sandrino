@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// Models
+model AdminUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  fullName  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_users")
+}
+
+model Profile {
+  id              String   @id @default(uuid())
+  fullName        String
+  jobTitle        String
+  shortBio        String
+  longBio         String?  @db.Text
+  profileImageUrl String?
+  resumePdfUrl    String?
+  socialLinks     Json?
+  seoMetadata     Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+model Project {
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  shortDescription String
+  fullDescription  String?       @db.Text
+  status           ProjectStatus @default(DRAFT)
+  displayOrder     Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  media       ProjectMedia[]
+  links       ProjectLink[]
+  projectTags ProjectTag[]
+
+  @@index([status])
+  @@index([displayOrder])
+  @@map("projects")
+}
+
+model ProjectMedia {
+  id        String    @id @default(uuid())
+  projectId String
+  fileUrl   String
+  fileType  MediaType
+  isCover   Boolean   @default(false)
+  caption   String?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_media")
+}
+
+model ProjectLink {
+  id        String   @id @default(uuid())
+  projectId String
+  label     String
+  url       String
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_links")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectTags ProjectTag[]
+
+  @@map("tags")
+}
+
+model ProjectTag {
+  projectId String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, tagId])
+  @@map("project_tags")
+}
+
+model SkillCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skills Skill[]
+
+  @@map("skill_categories")
+}
+
+model Skill {
+  id              String     @id @default(uuid())
+  categoryId      String
+  name            String
+  level           SkillLevel
+  yearsExperience Int?
+  iconUrl         String?
+  order           Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  category SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@map("skills")
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String?
+  message   String   @db.Text
+  ipAddress String?
+  userAgent String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+model EmailLog {
+  id          String   @id @default(uuid())
+  toEmail     String
+  fromEmail   String
+  subject     String
+  body        String   @db.Text
+  status      String
+  provider    String   @default("brevo")
+  messageId   String?
+  errorMsg    String?  @db.Text
+  sentAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@index([sentAt])
+  @@map("email_logs")
+}
