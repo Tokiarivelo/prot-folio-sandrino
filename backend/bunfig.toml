@@ -1,0 +1,8 @@
+[install]
+# Bun package manager configuration
+production = false
+dev = true
+
+[install.cache]
+# Enable caching for faster installs
+dir = "~/.bun/install/cache"
