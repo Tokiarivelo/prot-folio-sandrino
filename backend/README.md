@@ -73,16 +73,20 @@ Handle contact submissions:
 ## 📦 Installation
 
 ### Prerequisites
-- Node.js (v18 or higher)
+- **Bun** (v1.1.34 or higher) - Fast all-in-one JavaScript runtime
+  - Install: `curl -fsSL https://bun.sh/install | bash`
+  - Or visit: https://bun.sh
 - PostgreSQL database (Supabase recommended)
 - Supabase account for storage
 - Brevo account for emails
+
+> **Note**: This project is configured to use Bun as the package manager. While npm/yarn may work, Bun is recommended for optimal performance.
 
 ### Setup Steps
 
 1. **Install dependencies**
 ```bash
-npm install
+bun install
 ```
 
 2. **Configure environment variables**
@@ -121,22 +125,22 @@ CORS_ORIGIN=http://localhost:4200
 
 3. **Generate Prisma Client**
 ```bash
-npm run prisma:generate
+bun run prisma:generate
 ```
 
 4. **Run database migrations**
 ```bash
-npm run prisma:migrate
+bun run prisma:migrate
 ```
 
 Or push schema directly (for development):
 ```bash
-npm run prisma:push
+bun run prisma:push
 ```
 
 5. **Start the development server**
 ```bash
-npm run start:dev
+bun run start:dev
 ```
 
 The API will be available at:
@@ -163,13 +167,13 @@ The Prisma schema includes the following models:
 
 ```bash
 # Open Prisma Studio (visual database editor)
-npm run prisma:studio
+bun run prisma:studio
 
 # Create a new migration
-npm run prisma:migrate
+bun run prisma:migrate
 
 # Reset database (⚠️ destructive)
-npx prisma migrate reset
+bunx prisma migrate reset
 ```
 
 ## 📘 API Documentation
@@ -221,8 +225,8 @@ Authorization: Bearer <your-jwt-token>
 ### Build for production
 
 ```bash
-npm run build
-npm run start:prod
+bun run build
+bun run start:prod
 ```
 
 ### Environment Setup
@@ -247,27 +251,27 @@ Ensure all environment variables are properly configured in your production envi
 
 ```bash
 # Development
-npm run start:dev          # Start with hot-reload
-npm run start:debug        # Start in debug mode
+bun run start:dev          # Start with hot-reload
+bun run start:debug        # Start in debug mode
 
 # Building
-npm run build              # Build for production
+bun run build              # Build for production
 
 # Testing
-npm test                   # Run unit tests
-npm run test:watch         # Run tests in watch mode
-npm run test:cov           # Generate coverage report
-npm run test:e2e           # Run end-to-end tests
+bun test                   # Run unit tests
+bun run test:watch         # Run tests in watch mode
+bun run test:cov           # Generate coverage report
+bun run test:e2e           # Run end-to-end tests
 
 # Code Quality
-npm run lint               # Lint and fix code
-npm run format             # Format code with Prettier
+bun run lint               # Lint and fix code
+bun run format             # Format code with Prettier
 
 # Database
-npm run prisma:generate    # Generate Prisma Client
-npm run prisma:migrate     # Run migrations
-npm run prisma:studio      # Open Prisma Studio
-npm run prisma:push        # Push schema (development)
+bun run prisma:generate    # Generate Prisma Client
+bun run prisma:migrate     # Run migrations
+bun run prisma:studio      # Open Prisma Studio
+bun run prisma:push        # Push schema (development)
 ```
 
 ## 📂 Project Structure

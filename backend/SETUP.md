@@ -2,10 +2,14 @@
 
 ## Prerequisites
 
-1. **Node.js** v18+ installed
+1. **Bun** v1.1.34+ installed
+   - Install: `curl -fsSL https://bun.sh/install | bash`
+   - Or visit: https://bun.sh
 2. **PostgreSQL** database (Supabase recommended)
 3. **Supabase** account for storage
 4. **Brevo** (Sendinblue) account for emails
+
+> **Note**: This project uses Bun as the package manager for faster installs and better performance.
 
 ## Step-by-Step Setup
 
@@ -13,7 +17,7 @@
 
 ```bash
 cd backend
-npm install
+bun install
 ```
 
 ### 2. Set Up Environment Variables
@@ -62,13 +66,13 @@ CORS_ORIGIN=http://localhost:4200
 ### 4. Generate Prisma Client
 
 ```bash
-npm run prisma:generate
+bun run prisma:generate
 ```
 
 ### 5. Push Database Schema
 
 ```bash
-npm run prisma:push
+bun run prisma:push
 ```
 
 This will create all tables in your database.
@@ -76,7 +80,7 @@ This will create all tables in your database.
 ### 6. Start Development Server
 
 ```bash
-npm run start:dev
+bun run start:dev
 ```
 
 The server will start at `http://localhost:3000`
@@ -130,7 +134,7 @@ Authorization: Bearer [YOUR_ACCESS_TOKEN]
 
 **Solution:**
 ```bash
-npm run prisma:generate
+bun run prisma:generate
 ```
 
 ### Issue: Database Connection Error
@@ -170,24 +174,24 @@ For production deployment:
 
 ```bash
 # Development
-npm run start:dev       # Start with hot reload
-npm run start:debug     # Start in debug mode
+bun run start:dev       # Start with hot reload
+bun run start:debug     # Start in debug mode
 
 # Production
-npm run build           # Build for production
-npm run start:prod      # Run production build
+bun run build           # Build for production
+bun run start:prod      # Run production build
 
 # Database
-npm run prisma:studio   # Open database GUI
-npm run prisma:migrate  # Create migration
+bun run prisma:studio   # Open database GUI
+bun run prisma:migrate  # Create migration
 
 # Testing
-npm test               # Run tests
-npm run test:e2e       # Run e2e tests
+bun test               # Run tests
+bun run test:e2e       # Run e2e tests
 
 # Code Quality
-npm run lint           # Lint code
-npm run format         # Format code
+bun run lint           # Lint code
+bun run format         # Format code
 ```
 
 ## Next Steps
