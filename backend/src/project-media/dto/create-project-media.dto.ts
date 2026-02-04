@@ -5,6 +5,7 @@ import {
   IsInt,
   IsOptional,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MediaType } from '@prisma/client';
 
@@ -18,6 +19,11 @@ export class CreateProjectMediaDto {
   fileType: MediaType;
 
   @ApiPropertyOptional({ example: false, default: false })
+  @Transform(({ value }: { value: string | boolean | undefined }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   isCover?: boolean;
@@ -28,6 +34,9 @@ export class CreateProjectMediaDto {
   caption?: string;
 
   @ApiPropertyOptional({ example: 0 })
+  @Transform(({ value }: { value: string | number | undefined }) =>
+    value !== undefined ? parseInt(String(value), 10) : value,
+  )
   @IsInt()
   @IsOptional()
   order?: number;

@@ -36,15 +36,35 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  // Setup Swagger UI with download options
   SwaggerModule.setup('api/docs', app, document, {
     customSiteTitle: 'Portfolio API Documentation',
     customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'none',
+      filter: true,
+      showExtensions: true,
+      showCommonExtensions: true,
+      // Enable the "Download" link in Swagger UI
+      urls: [
+        {
+          url: '/api/docs-json',
+          name: 'Portfolio API',
+        },
+      ],
+    },
+    jsonDocumentUrl: '/api/docs-json',
+    yamlDocumentUrl: '/api/docs-yaml',
   });
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);
   console.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
+  console.log(`📄 OpenAPI JSON: http://localhost:${port}/api/docs-json`);
+  console.log(`📄 OpenAPI YAML: http://localhost:${port}/api/docs-yaml`);
 }
 
 void bootstrap();

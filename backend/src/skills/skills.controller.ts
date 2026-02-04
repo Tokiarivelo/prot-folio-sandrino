@@ -8,8 +8,17 @@ import {
   Delete,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { SkillsService } from './skills.service';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
@@ -26,9 +35,32 @@ export class SkillsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create skill (Admin)' })
-  createSkill(@Body() createSkillDto: CreateSkillDto) {
-    return this.skillsService.createSkill(createSkillDto);
+  @UseInterceptors(FileInterceptor('icon'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Create skill with optional icon upload (Admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        icon: { type: 'string', format: 'binary', description: 'Icon file' },
+        categoryId: { type: 'string' },
+        name: { type: 'string' },
+        level: {
+          type: 'string',
+          enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'],
+        },
+        yearsExperience: { type: 'integer' },
+        iconUrl: { type: 'string', description: 'URL if not uploading file' },
+        order: { type: 'integer' },
+      },
+      required: ['categoryId', 'name', 'level'],
+    },
+  })
+  createSkill(
+    @Body() createSkillDto: CreateSkillDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.skillsService.createSkill(createSkillDto, file);
   }
 
   @Get()
@@ -49,9 +81,32 @@ export class SkillsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update skill (Admin)' })
-  updateSkill(@Param('id') id: string, @Body() updateSkillDto: UpdateSkillDto) {
-    return this.skillsService.updateSkill(id, updateSkillDto);
+  @UseInterceptors(FileInterceptor('icon'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Update skill with optional icon upload (Admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        icon: { type: 'string', format: 'binary', description: 'Icon file' },
+        categoryId: { type: 'string' },
+        name: { type: 'string' },
+        level: {
+          type: 'string',
+          enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'],
+        },
+        yearsExperience: { type: 'integer' },
+        iconUrl: { type: 'string', description: 'URL if not uploading file' },
+        order: { type: 'integer' },
+      },
+    },
+  })
+  updateSkill(
+    @Param('id') id: string,
+    @Body() updateSkillDto: UpdateSkillDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.skillsService.updateSkill(id, updateSkillDto, file);
   }
 
   @Delete(':id')
@@ -66,9 +121,28 @@ export class SkillsController {
   @Post('categories')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create skill category (Admin)' })
-  createCategory(@Body() createSkillCategoryDto: CreateSkillCategoryDto) {
-    return this.skillsService.createCategory(createSkillCategoryDto);
+  @UseInterceptors(FileInterceptor('icon'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Create skill category with optional icon upload (Admin)',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        icon: { type: 'string', format: 'binary', description: 'Icon file' },
+        name: { type: 'string' },
+        iconUrl: { type: 'string', description: 'URL if not uploading file' },
+        order: { type: 'integer' },
+      },
+      required: ['name'],
+    },
+  })
+  createCategory(
+    @Body() createSkillCategoryDto: CreateSkillCategoryDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.skillsService.createCategory(createSkillCategoryDto, file);
   }
 
   @Get('categories/all')
@@ -86,12 +160,28 @@ export class SkillsController {
   @Patch('categories/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update skill category (Admin)' })
+  @UseInterceptors(FileInterceptor('icon'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Update skill category with optional icon upload (Admin)',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        icon: { type: 'string', format: 'binary', description: 'Icon file' },
+        name: { type: 'string' },
+        iconUrl: { type: 'string', description: 'URL if not uploading file' },
+        order: { type: 'integer' },
+      },
+    },
+  })
   updateCategory(
     @Param('id') id: string,
     @Body() updateSkillCategoryDto: UpdateSkillCategoryDto,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.skillsService.updateCategory(id, updateSkillCategoryDto);
+    return this.skillsService.updateCategory(id, updateSkillCategoryDto, file);
   }
 
   @Delete('categories/:id')

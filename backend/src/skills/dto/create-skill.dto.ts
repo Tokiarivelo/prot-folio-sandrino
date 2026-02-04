@@ -1,4 +1,5 @@
 import { IsString, IsEnum, IsInt, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SkillLevel } from '@prisma/client';
 
@@ -16,6 +17,9 @@ export class CreateSkillDto {
   level: SkillLevel;
 
   @ApiPropertyOptional({ example: 5 })
+  @Transform(({ value }: { value: string | number | undefined }) =>
+    value !== undefined ? parseInt(String(value), 10) : value,
+  )
   @IsInt()
   @IsOptional()
   yearsExperience?: number;
@@ -26,6 +30,9 @@ export class CreateSkillDto {
   iconUrl?: string;
 
   @ApiPropertyOptional({ example: 0 })
+  @Transform(({ value }: { value: string | number | undefined }) =>
+    value !== undefined ? parseInt(String(value), 10) : value,
+  )
   @IsInt()
   @IsOptional()
   order?: number;

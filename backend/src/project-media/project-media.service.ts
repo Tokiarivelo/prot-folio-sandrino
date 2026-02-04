@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateProjectMediaDto } from './dto/create-project-media.dto';
@@ -6,6 +6,8 @@ import { UpdateProjectMediaDto } from './dto/update-project-media.dto';
 
 @Injectable()
 export class ProjectMediaService {
+  private readonly logger = new Logger(ProjectMediaService.name);
+
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
@@ -15,8 +17,15 @@ export class ProjectMediaService {
     createProjectMediaDto: CreateProjectMediaDto,
     file: Express.Multer.File,
   ) {
+    this.logger.log('=== CREATE PROJECT MEDIA ===');
+    this.logger.log(`DTO: ${JSON.stringify(createProjectMediaDto)}`);
+    this.logger.log(
+      `File: ${file ? `${file.originalname} (${file.size} bytes)` : 'No file'}`,
+    );
+
     // Upload file to Supabase
     const fileUrl = await this.storage.uploadFile(file, 'projects');
+    this.logger.log(`File uploaded, URL: ${fileUrl}`);
 
     // Save metadata to database
     const media = await this.prisma.projectMedia.create({
@@ -25,6 +34,9 @@ export class ProjectMediaService {
         fileUrl,
       },
     });
+
+    this.logger.log(`Media record created with ID: ${media.id}`);
+    this.logger.log('=== CREATE PROJECT MEDIA COMPLETE ===');
 
     return media;
   }

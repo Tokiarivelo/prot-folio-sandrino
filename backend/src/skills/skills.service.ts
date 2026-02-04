@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
 import { CreateSkillCategoryDto } from './dto/create-skill-category.dto';
@@ -7,16 +8,42 @@ import { UpdateSkillCategoryDto } from './dto/update-skill-category.dto';
 
 @Injectable()
 export class SkillsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(SkillsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   // Skills
-  async createSkill(createSkillDto: CreateSkillDto) {
-    return this.prisma.skill.create({
-      data: createSkillDto,
+  async createSkill(
+    createSkillDto: CreateSkillDto,
+    file?: Express.Multer.File,
+  ) {
+    this.logger.log('=== CREATE SKILL ===');
+    this.logger.log(`DTO: ${JSON.stringify(createSkillDto)}`);
+
+    let iconUrl = createSkillDto.iconUrl;
+
+    // If a file is uploaded, use it for iconUrl
+    if (file) {
+      this.logger.log(`Uploading icon file: ${file.originalname}`);
+      iconUrl = await this.storage.uploadFile(file, 'skills');
+      this.logger.log(`Icon uploaded: ${iconUrl}`);
+    }
+
+    const skill = await this.prisma.skill.create({
+      data: {
+        ...createSkillDto,
+        iconUrl,
+      },
       include: {
         category: true,
       },
     });
+
+    this.logger.log(`Skill created with ID: ${skill.id}`);
+    return skill;
   }
 
   async findAllSkills() {
@@ -50,11 +77,29 @@ export class SkillsService {
     return skill;
   }
 
-  async updateSkill(id: string, updateSkillDto: UpdateSkillDto) {
+  async updateSkill(
+    id: string,
+    updateSkillDto: UpdateSkillDto,
+    file?: Express.Multer.File,
+  ) {
+    this.logger.log(`=== UPDATE SKILL ${id} ===`);
+
+    let iconUrl = updateSkillDto.iconUrl;
+
+    // If a file is uploaded, use it for iconUrl
+    if (file) {
+      this.logger.log(`Uploading new icon file: ${file.originalname}`);
+      iconUrl = await this.storage.uploadFile(file, 'skills');
+      this.logger.log(`Icon uploaded: ${iconUrl}`);
+    }
+
     try {
       return await this.prisma.skill.update({
         where: { id },
-        data: updateSkillDto,
+        data: {
+          ...updateSkillDto,
+          iconUrl,
+        },
         include: {
           category: true,
         },
@@ -75,10 +120,31 @@ export class SkillsService {
   }
 
   // Skill Categories
-  async createCategory(createSkillCategoryDto: CreateSkillCategoryDto) {
-    return this.prisma.skillCategory.create({
-      data: createSkillCategoryDto,
+  async createCategory(
+    createSkillCategoryDto: CreateSkillCategoryDto,
+    file?: Express.Multer.File,
+  ) {
+    this.logger.log('=== CREATE SKILL CATEGORY ===');
+    this.logger.log(`DTO: ${JSON.stringify(createSkillCategoryDto)}`);
+
+    let iconUrl = createSkillCategoryDto.iconUrl;
+
+    // If a file is uploaded, use it for iconUrl
+    if (file) {
+      this.logger.log(`Uploading category icon file: ${file.originalname}`);
+      iconUrl = await this.storage.uploadFile(file, 'skill-categories');
+      this.logger.log(`Category icon uploaded: ${iconUrl}`);
+    }
+
+    const category = await this.prisma.skillCategory.create({
+      data: {
+        ...createSkillCategoryDto,
+        iconUrl,
+      },
     });
+
+    this.logger.log(`Category created with ID: ${category.id}`);
+    return category;
   }
 
   async findAllCategories() {
@@ -112,11 +178,26 @@ export class SkillsService {
   async updateCategory(
     id: string,
     updateSkillCategoryDto: UpdateSkillCategoryDto,
+    file?: Express.Multer.File,
   ) {
+    this.logger.log(`=== UPDATE SKILL CATEGORY ${id} ===`);
+
+    let iconUrl = updateSkillCategoryDto.iconUrl;
+
+    // If a file is uploaded, use it for iconUrl
+    if (file) {
+      this.logger.log(`Uploading new category icon file: ${file.originalname}`);
+      iconUrl = await this.storage.uploadFile(file, 'skill-categories');
+      this.logger.log(`Category icon uploaded: ${iconUrl}`);
+    }
+
     try {
       return await this.prisma.skillCategory.update({
         where: { id },
-        data: updateSkillCategoryDto,
+        data: {
+          ...updateSkillCategoryDto,
+          iconUrl,
+        },
       });
     } catch {
       throw new NotFoundException('Category not found');

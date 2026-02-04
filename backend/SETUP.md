@@ -33,7 +33,7 @@ Edit `.env` and fill in your credentials:
 ```env
 # Application
 NODE_ENV=development
-PORT=3000
+PORT=3008
 
 # Database - Get from Supabase Project Settings -> Database
 DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres"
@@ -83,14 +83,14 @@ This will create all tables in your database.
 bun run start:dev
 ```
 
-The server will start at `http://localhost:3000`
+The server will start at `http://localhost:3008`
 
 ### 7. Access API Documentation
 
 Open your browser and go to:
 
 ```
-http://localhost:3000/api/docs
+http://localhost:3008/api/docs
 ```
 
 This is the Swagger UI with complete API documentation.
@@ -100,7 +100,7 @@ This is the Swagger UI with complete API documentation.
 Using the Swagger UI or any API client:
 
 ```bash
-POST http://localhost:3000/auth/register
+POST http://localhost:3008/auth/register
 Content-Type: application/json
 
 {
@@ -113,7 +113,7 @@ Content-Type: application/json
 ### 9. Login to Get JWT Token
 
 ```bash
-POST http://localhost:3000/auth/login
+POST http://localhost:3008/auth/login
 Content-Type: application/json
 
 {
@@ -133,6 +133,7 @@ Authorization: Bearer [YOUR_ACCESS_TOKEN]
 ### Issue: Prisma Client Not Generated
 
 **Solution:**
+
 ```bash
 bun run prisma:generate
 ```
@@ -140,6 +141,7 @@ bun run prisma:generate
 ### Issue: Database Connection Error
 
 **Solution:**
+
 - Verify DATABASE_URL is correct
 - Check Supabase database is running
 - Ensure IP is allowed in Supabase settings
@@ -147,6 +149,7 @@ bun run prisma:generate
 ### Issue: Email Not Sending
 
 **Solution:**
+
 - Verify BREVO_API_KEY is valid
 - Check sender email is verified in Brevo
 - Look at application logs for detailed errors
@@ -154,6 +157,7 @@ bun run prisma:generate
 ### Issue: File Upload Failing
 
 **Solution:**
+
 - Verify SUPABASE_URL and SUPABASE_KEY
 - Ensure storage bucket exists and is accessible
 - Check bucket permissions
@@ -205,8 +209,9 @@ bun run format         # Format code
 ## Support
 
 For issues or questions:
+
 - Check the main [README.md](README.md)
-- Review [Swagger documentation](http://localhost:3000/api/docs)
+- Review [Swagger documentation](http://localhost:3008/api/docs)
 - Check application logs
 - Review Prisma schema
 
