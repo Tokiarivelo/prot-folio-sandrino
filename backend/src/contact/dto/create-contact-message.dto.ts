@@ -18,4 +18,12 @@ export class CreateContactMessageDto {
   @ApiProperty({ example: 'I would like to discuss a project...' })
   @IsString()
   message: string;
+
+  @ApiPropertyOptional({
+    description: 'UUID of the user being contacted',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @IsString()
+  @IsOptional()
+  recipientId?: string;
 }

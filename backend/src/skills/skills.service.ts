@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
 import { CreateSkillCategoryDto } from './dto/create-skill-category.dto';
 import { UpdateSkillCategoryDto } from './dto/update-skill-category.dto';
+import { Prisma } from '@prisma/client';
+import type { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 
 @Injectable()
 export class SkillsService {
@@ -18,6 +25,7 @@ export class SkillsService {
   // Skills
   async createSkill(
     createSkillDto: CreateSkillDto,
+    userId: string,
     file?: Express.Multer.File,
   ) {
     this.logger.log('=== CREATE SKILL ===');
@@ -35,6 +43,7 @@ export class SkillsService {
     const skill = await this.prisma.skill.create({
       data: {
         ...createSkillDto,
+        userId,
         iconUrl,
       },
       include: {
@@ -46,8 +55,41 @@ export class SkillsService {
     return skill;
   }
 
-  async findAllSkills() {
+  async findAllSkills(
+    user?: AuthenticatedUser,
+    username?: string,
+    targetUserId?: string,
+  ) {
+    if (!user && !username && !targetUserId) {
+      return [];
+    }
+
+    const where: Prisma.SkillWhereInput = {};
+
+    // Base filter for ownership
+    if (targetUserId) {
+      where.userId = targetUserId;
+    } else if (username) {
+      where.owner = { username };
+    }
+
+    // Role-based restrictions
+    if (user) {
+      if (user.role !== 'ADMIN') {
+        where.userId = user.userId;
+        delete where.owner;
+      }
+    } else {
+      // Public requests
+      const ownerFilter = (where.owner as Prisma.AdminUserWhereInput) || {};
+      where.owner = {
+        ...ownerFilter,
+        isPublic: true,
+      };
+    }
+
     return this.prisma.skill.findMany({
+      where,
       include: {
         category: true,
       },
@@ -55,14 +97,47 @@ export class SkillsService {
     });
   }
 
-  async findSkillsByCategory(categoryId: string) {
+  async findSkillsByCategory(
+    categoryId: string,
+    user?: AuthenticatedUser,
+    username?: string,
+    targetUserId?: string,
+  ) {
+    if (!user && !username && !targetUserId) {
+      return [];
+    }
+
+    const where: Prisma.SkillWhereInput = { categoryId };
+
+    // Base filter for ownership
+    if (targetUserId) {
+      where.userId = targetUserId;
+    } else if (username) {
+      where.owner = { username };
+    }
+
+    // Role-based restrictions
+    if (user) {
+      if (user.role !== 'ADMIN') {
+        where.userId = user.userId;
+        delete where.owner;
+      }
+    } else {
+      // Public requests
+      const ownerFilter = (where.owner as Prisma.AdminUserWhereInput) || {};
+      where.owner = {
+        ...ownerFilter,
+        isPublic: true,
+      };
+    }
+
     return this.prisma.skill.findMany({
-      where: { categoryId },
+      where,
       orderBy: { order: 'asc' },
     });
   }
 
-  async findOneSkill(id: string) {
+  async findOneSkill(id: string, user?: AuthenticatedUser) {
     const skill = await this.prisma.skill.findUnique({
       where: { id },
       include: {
@@ -74,15 +149,27 @@ export class SkillsService {
       throw new NotFoundException('Skill not found');
     }
 
+    if (user && user.role !== 'ADMIN' && skill.userId !== user.userId) {
+      throw new ForbiddenException('You do not own this skill');
+    }
+
     return skill;
   }
 
   async updateSkill(
     id: string,
     updateSkillDto: UpdateSkillDto,
+    user: AuthenticatedUser,
     file?: Express.Multer.File,
   ) {
     this.logger.log(`=== UPDATE SKILL ${id} ===`);
+
+    const skill = await this.prisma.skill.findUnique({ where: { id } });
+    if (!skill) throw new NotFoundException('Skill not found');
+
+    if (user.role !== 'ADMIN' && skill.userId !== user.userId) {
+      throw new ForbiddenException('You do not own this skill');
+    }
 
     let iconUrl = updateSkillDto.iconUrl;
 
@@ -105,23 +192,31 @@ export class SkillsService {
         },
       });
     } catch {
-      throw new NotFoundException('Skill not found');
+      throw new NotFoundException('Skill refresh failed');
     }
   }
 
-  async removeSkill(id: string) {
+  async removeSkill(id: string, user: AuthenticatedUser) {
+    const skill = await this.prisma.skill.findUnique({ where: { id } });
+    if (!skill) throw new NotFoundException('Skill not found');
+
+    if (user.role !== 'ADMIN' && skill.userId !== user.userId) {
+      throw new ForbiddenException('You do not own this skill');
+    }
+
     try {
       return await this.prisma.skill.delete({
         where: { id },
       });
     } catch {
-      throw new NotFoundException('Skill not found');
+      throw new NotFoundException('Skill deletion failed');
     }
   }
 
   // Skill Categories
   async createCategory(
     createSkillCategoryDto: CreateSkillCategoryDto,
+    userId: string,
     file?: Express.Multer.File,
   ) {
     this.logger.log('=== CREATE SKILL CATEGORY ===');
@@ -139,6 +234,7 @@ export class SkillsService {
     const category = await this.prisma.skillCategory.create({
       data: {
         ...createSkillCategoryDto,
+        userId,
         iconUrl,
       },
     });
@@ -147,10 +243,56 @@ export class SkillsService {
     return category;
   }
 
-  async findAllCategories() {
+  async findAllCategories(
+    user?: AuthenticatedUser,
+    username?: string,
+    targetUserId?: string,
+  ) {
+    if (!user && !username && !targetUserId) {
+      return [];
+    }
+
+    const where: Prisma.SkillCategoryWhereInput = {};
+    let subWhere: Prisma.SkillWhereInput = {};
+
+    // Base filter for ownership
+    if (targetUserId) {
+      where.userId = targetUserId;
+      subWhere = { userId: targetUserId };
+    } else if (username) {
+      where.owner = { username };
+      subWhere = { owner: { username } };
+    }
+
+    // Role-based restrictions
+    if (user) {
+      if (user.role !== 'ADMIN') {
+        where.userId = user.userId;
+        subWhere = { userId: user.userId };
+        delete where.owner;
+        delete subWhere.owner;
+      }
+    } else {
+      // Public requests
+      const ownerFilter = (where.owner as Prisma.AdminUserWhereInput) || {};
+      where.owner = {
+        ...ownerFilter,
+        isPublic: true,
+      };
+
+      const subOwnerFilter =
+        (subWhere.owner as Prisma.AdminUserWhereInput) || {};
+      subWhere.owner = {
+        ...subOwnerFilter,
+        isPublic: true,
+      };
+    }
+
     return this.prisma.skillCategory.findMany({
+      where,
       include: {
         skills: {
+          where: subWhere,
           orderBy: { order: 'asc' },
         },
       },
@@ -158,7 +300,7 @@ export class SkillsService {
     });
   }
 
-  async findOneCategory(id: string) {
+  async findOneCategory(id: string, user?: AuthenticatedUser) {
     const category = await this.prisma.skillCategory.findUnique({
       where: { id },
       include: {
@@ -172,15 +314,29 @@ export class SkillsService {
       throw new NotFoundException('Category not found');
     }
 
+    if (user && user.role !== 'ADMIN' && category.userId !== user.userId) {
+      throw new ForbiddenException('You do not own this category');
+    }
+
     return category;
   }
 
   async updateCategory(
     id: string,
     updateSkillCategoryDto: UpdateSkillCategoryDto,
+    user: AuthenticatedUser,
     file?: Express.Multer.File,
   ) {
     this.logger.log(`=== UPDATE SKILL CATEGORY ${id} ===`);
+
+    const category = await this.prisma.skillCategory.findUnique({
+      where: { id },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+
+    if (user.role !== 'ADMIN' && category.userId !== user.userId) {
+      throw new ForbiddenException('You do not own this category');
+    }
 
     let iconUrl = updateSkillCategoryDto.iconUrl;
 
@@ -200,17 +356,26 @@ export class SkillsService {
         },
       });
     } catch {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException('Category update failed');
     }
   }
 
-  async removeCategory(id: string) {
+  async removeCategory(id: string, user: AuthenticatedUser) {
+    const category = await this.prisma.skillCategory.findUnique({
+      where: { id },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+
+    if (user.role !== 'ADMIN' && category.userId !== user.userId) {
+      throw new ForbiddenException('You do not own this category');
+    }
+
     try {
       return await this.prisma.skillCategory.delete({
         where: { id },
       });
     } catch {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException('Category deletion failed');
     }
   }
 }

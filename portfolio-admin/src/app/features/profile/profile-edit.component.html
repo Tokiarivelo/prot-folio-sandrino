@@ -1,0 +1,274 @@
+<div class="page-header">
+  <h1>Profile</h1>
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="isSaving()"
+  >
+    @if (isSaving()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      <ng-container>
+        <mat-icon>save</mat-icon>
+        {{ existingProfile() ? 'Update Profile' : 'Create Profile' }}
+      </ng-container>
+    }
+  </button>
+</div>
+
+@if (isLoading()) {
+  <div class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+} @else {
+  <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+    <div class="form-grid">
+      <!-- Image Upload Card -->
+      <mat-card class="image-card">
+        <mat-card-header>
+          <mat-card-title>Profile Image</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="image-preview">
+            @if (previewImageUrl()) {
+              <img [src]="previewImageUrl()" alt="Profile image" class="profile-img" />
+            } @else {
+              <div class="no-image">
+                <mat-icon>person</mat-icon>
+                <span>No image uploaded</span>
+              </div>
+            }
+          </div>
+          <input
+            type="file"
+            #fileInput
+            accept="image/*"
+            style="display: none"
+            (change)="onImageSelected($event)"
+          />
+          <button
+            mat-stroked-button
+            type="button"
+            class="full-width"
+            (click)="fileInput.click()"
+          >
+            <mat-icon>upload</mat-icon>
+            Upload Image
+          </button>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Basic Info Card -->
+      <mat-card class="info-card">
+        <mat-card-header>
+          <mat-card-title>Basic Information</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Full Name</mat-label>
+              <input matInput formControlName="fullName" />
+              @if (profileForm.get('fullName')?.hasError('required') && profileForm.get('fullName')?.touched) {
+                <mat-error>Full name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Job Title</mat-label>
+              <input matInput formControlName="jobTitle" />
+              @if (profileForm.get('jobTitle')?.hasError('required') && profileForm.get('jobTitle')?.touched) {
+                <mat-error>Job title is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Hero Text</mat-label>
+            <input matInput formControlName="heroText" placeholder="Catchy headline for your portfolio" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Short Bio</mat-label>
+            <textarea matInput formControlName="shortBio" rows="3" placeholder="Brief introduction"></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Long Bio</mat-label>
+            <textarea matInput formControlName="longBio" rows="6" placeholder="Full biography"></textarea>
+          </mat-form-field>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Location</mat-label>
+              <input matInput formControlName="location" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Resume PDF URL</mat-label>
+              <input matInput formControlName="resumePdfUrl" type="url" />
+            </mat-form-field>
+          </div>
+
+          <div class="field-row checkbox-row">
+            <mat-checkbox formControlName="availability" color="primary">
+              Available for work
+            </mat-checkbox>
+
+            <mat-checkbox formControlName="isPublic" color="accent">
+              Public Profile (Visible to everyone)
+            </mat-checkbox>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Social Links Card -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Social Links</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>GitHub URL</mat-label>
+              <mat-icon matPrefix>code</mat-icon>
+              <input matInput formControlName="github" type="url" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>LinkedIn URL</mat-label>
+              <mat-icon matPrefix>business</mat-icon>
+              <input matInput formControlName="linkedin" type="url" />
+            </mat-form-field>
+          </div>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Twitter URL</mat-label>
+              <mat-icon matPrefix>tag</mat-icon>
+              <input matInput formControlName="twitter" type="url" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Contact Email</mat-label>
+              <mat-icon matPrefix>email</mat-icon>
+              <input matInput formControlName="email" type="email" />
+              @if (profileForm.get('email')?.hasError('email') && profileForm.get('email')?.touched) {
+                <mat-error>Please enter a valid email address</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- SEO Metadata Card -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>SEO Metadata</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>SEO Title</mat-label>
+            <input matInput formControlName="seoTitle" placeholder="Page title for search engines" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>SEO Description</mat-label>
+            <textarea
+              matInput
+              formControlName="seoDescription"
+              rows="3"
+              placeholder="Meta description for search engines"
+            ></textarea>
+          </mat-form-field>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </form>
+}
+
+<style>
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    padding: 64px;
+  }
+
+  .profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .image-card mat-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .image-preview {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .no-image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #9e9e9e;
+  }
+
+  .no-image mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .field-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .half-width {
+    flex: 1;
+    min-width: 200px;
+  }
+</style>

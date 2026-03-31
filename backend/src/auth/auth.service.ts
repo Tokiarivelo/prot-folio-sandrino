@@ -5,7 +5,9 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { LoginDto } from './dto/login.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -15,6 +17,30 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
+
+  async updateUser(userId: string, dto: UpdateUserDto) {
+    const data: Prisma.AdminUserUpdateInput = { ...dto };
+
+    if (dto.password) {
+      data.password = await bcrypt.hash(dto.password, 10);
+    }
+
+    try {
+      const user = await this.prisma.adminUser.update({
+        where: { id: userId },
+        data,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _, ...result } = user;
+      return result;
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('Email or username already in use');
+      }
+      throw error;
+    }
+  }
 
   async register(registerDto: RegisterDto) {
     const existingUser = await this.prisma.adminUser.findUnique({
@@ -58,7 +84,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+    };
     const access_token = this.jwtService.sign(payload);
 
     return {
@@ -66,7 +97,9 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
         fullName: user.fullName,
+        role: user.role,
       },
     };
   }
@@ -77,7 +110,9 @@ export class AuthService {
       select: {
         id: true,
         email: true,
+        username: true,
         fullName: true,
+        role: true,
       },
     });
   }

@@ -10,6 +10,11 @@ datasource db {
 }
 
 // Enums
+enum Role {
+  USER
+  ADMIN
+}
+
 enum ProjectStatus {
   DRAFT
   PUBLISHED
@@ -34,30 +39,48 @@ model AdminUser {
   email     String   @unique
   password  String
   fullName  String
+  username  String?  @unique
+  role      Role     @default(USER)
+  isPublic  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  projects        Project[]
+  skills          Skill[]
+  skillCategories SkillCategory[]
+  tools           Tool[]
+  profile         Profile?
+  contactMessages ContactMessage[]
 
   @@map("admin_users")
 }
 
 model Profile {
   id              String   @id @default(uuid())
+  userId          String   @unique
   fullName        String
   jobTitle        String
+  heroText        String?
   shortBio        String
   longBio         String?  @db.Text
+  location        String?
+  availability    Boolean  @default(true)
   profileImageUrl String?
   resumePdfUrl    String?
   socialLinks     Json?
   seoMetadata     Json?
+  themeConfig     Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  owner AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
 }
 
 model Project {
   id               String        @id @default(uuid())
+  userId           String
   title            String
   slug             String        @unique
   shortDescription String
@@ -67,10 +90,12 @@ model Project {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
+  owner       AdminUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
   media       ProjectMedia[]
   links       ProjectLink[]
   projectTags ProjectTag[]
 
+  @@index([userId])
   @@index([status])
   @@index([displayOrder])
   @@map("projects")
@@ -134,19 +159,24 @@ model ProjectTag {
 
 model SkillCategory {
   id        String   @id @default(uuid())
-  name      String   @unique
+  userId    String
+  name      String
   iconUrl   String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  owner  AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   skills Skill[]
 
+  @@unique([userId, name])
+  @@index([userId])
   @@map("skill_categories")
 }
 
 model Skill {
   id              String     @id @default(uuid())
+  userId          String
   categoryId      String
   name            String
   level           SkillLevel
@@ -156,14 +186,17 @@ model Skill {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
+  owner    AdminUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
   category SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@index([categoryId])
   @@map("skills")
 }
 
 model ContactMessage {
   id        String   @id @default(uuid())
+  userId    String?
   name      String
   email     String
   subject   String?
@@ -174,9 +207,31 @@ model ContactMessage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  owner AdminUser? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([isRead])
   @@index([createdAt])
   @@map("contact_messages")
+}
+
+// Ticker icons displayed in the animated marquee on the portfolio homepage
+model Tool {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  iconUrl   String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([order])
+  @@map("tools")
 }
 
 model EmailLog {

@@ -1,0 +1,64 @@
+version: '3.9'
+
+services:
+  # ── NestJS API ──────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: portfolio-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_HOST_PORT:-3008}:3008"
+    environment:
+      NODE_ENV: production
+      PORT: 3008
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-portfolio-media}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000,http://localhost:4200}
+    networks:
+      - portfolio
+
+  # ── Next.js Public Portfolio ─────────────────────────────────────────────────
+  web:
+    build:
+      context: ./portfolio-web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:3008}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:4000}
+    container_name: portfolio-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_HOST_PORT:-4000}:4000"
+    environment:
+      PORT: 4000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:3008}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:4000}
+    depends_on:
+      - backend
+    networks:
+      - portfolio
+
+  # ── Angular Admin Dashboard ──────────────────────────────────────────────────
+  admin:
+    build:
+      context: ./portfolio-admin
+      dockerfile: Dockerfile
+    container_name: portfolio-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_HOST_PORT:-4200}:4200"
+    depends_on:
+      - backend
+    networks:
+      - portfolio
+
+networks:
+  portfolio:
+    driver: bridge

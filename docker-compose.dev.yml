@@ -1,0 +1,39 @@
+version: '3.9'
+
+# Development override — hot reload via volume mounts.
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Or simply: make docker-dev
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder          # stop at builder stage (no slim image)
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./backend/prisma:/app/prisma:ro
+    command: ["bun", "run", "start:dev"]
+
+  web:
+    build:
+      context: ./portfolio-web
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./portfolio-web/src:/app/src:ro
+      - ./portfolio-web/public:/app/public:ro
+    command: ["npm", "run", "dev"]
+
+  admin:
+    build:
+      context: ./portfolio-admin
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - ./portfolio-admin/src:/app/src:ro
+    command: ["npm", "run", "start", "--", "--host", "0.0.0.0", "--port", "4200"]

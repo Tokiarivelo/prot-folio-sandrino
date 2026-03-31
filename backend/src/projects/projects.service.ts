@@ -45,7 +45,17 @@ export class ProjectsService {
     username?: string,
     targetUserId?: string,
   ) {
-    console.log('user :>> ', user);
+    if (!user && !username && !targetUserId) {
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        },
+      };
+    }
 
     const skip = (page - 1) * limit;
 
@@ -59,17 +69,29 @@ export class ProjectsService {
       };
     }
 
+    // Use nested owner filter if username is provided
+    if (targetUserId) {
+      where.userId = targetUserId;
+    } else if (username) {
+      where.owner = { username };
+    }
+
+    // Role-based restrictions
     if (user) {
-      // Authorization: if user is not admin and is authenticated, show only their projects
       if (user.role !== 'ADMIN') {
+        // Regular authenticated users can only ever see their own projects
         where.userId = user.userId;
+        // Remove owner filter if it was set to something else by targetUserId/username
+        delete where.owner;
       }
+      // Admins see everything filtered by targetUserId/username if provided
     } else {
-      // Public requests filter by owner's isPublic flag and optional target user
+      // Public requests: projects must be PUBLISHED and owner's profile must be PUBLIC
+      where.status = ProjectStatus.PUBLISHED;
+      const ownerFilter = (where.owner as Prisma.AdminUserWhereInput) || {};
       where.owner = {
+        ...ownerFilter,
         isPublic: true,
-        ...(username ? { username } : {}),
-        ...(targetUserId ? { id: targetUserId } : {}),
       };
     }
 
@@ -80,6 +102,7 @@ export class ProjectsService {
           projectTags: { include: { tag: true } },
           media: { orderBy: { order: 'asc' } },
           links: true,
+          owner: true,
         },
         orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
         skip,

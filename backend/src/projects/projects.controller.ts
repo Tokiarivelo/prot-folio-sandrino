@@ -64,9 +64,12 @@ export class ProjectsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'List projects (Public)',
-    description: 'Returns a paginated list of projects.',
+    summary: 'List projects (Public/Auth)',
+    description:
+      'Returns a paginated list of projects. Authenticated users see their own projects.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })

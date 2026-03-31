@@ -1,0 +1,176 @@
+<div class="media-section">
+  <div class="upload-zone">
+    <input
+      type="file"
+      #mediaInput
+      accept="image/*,video/*"
+      multiple
+      style="display: none"
+      (change)="onFileSelected($event)"
+    />
+    <button
+      mat-stroked-button
+      color="primary"
+      (click)="mediaInput.click()"
+      [disabled]="isUploading()"
+      class="upload-btn"
+    >
+      @if (isUploading()) {
+        <ng-container>
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Uploading...</span>
+        </ng-container>
+      } @else {
+        <ng-container>
+          <mat-icon>cloud_upload</mat-icon>
+          <span>Upload Media (Images or Videos)</span>
+        </ng-container>
+      }
+    </button>
+    <p class="upload-hint">Drag and drop or click to select files. Multiple files supported.</p>
+  </div>
+
+  @if (mediaItems().length === 0) {
+    <div class="no-media">
+      <mat-icon>photo_library</mat-icon>
+      <p>No media uploaded yet</p>
+    </div>
+  } @else {
+    <div class="media-grid">
+      @for (media of mediaItems(); track media.id) {
+        <mat-card class="media-card">
+          <div class="media-preview">
+            @if (media.fileType === 'VIDEO') {
+              <video [src]="media.fileUrl" class="media-thumb" controls></video>
+            } @else {
+              <img [src]="media.fileUrl" [alt]="media.caption || 'Project media'" class="media-thumb" />
+            }
+            @if (media.isCover) {
+              <mat-chip class="cover-badge" color="primary" selected>Cover</mat-chip>
+            }
+          </div>
+          <mat-card-content>
+            @if (media.caption) {
+              <p class="media-caption">{{ media.caption }}</p>
+            }
+            <div class="media-actions">
+              @if (!media.isCover) {
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  (click)="setCover(media)"
+                  class="cover-btn"
+                >
+                  <mat-icon>star</mat-icon>
+                  Set as Cover
+                </button>
+              }
+              <button mat-icon-button color="warn" (click)="deleteMedia(media)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+</div>
+
+<style>
+  .media-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 16px 0;
+  }
+
+  .upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px;
+    border: 2px dashed #e0e0e0;
+    border-radius: 8px;
+    background-color: #fafafa;
+  }
+
+  .upload-btn {
+    font-size: 16px;
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .upload-hint {
+    color: #9e9e9e;
+    font-size: 13px;
+    margin: 0;
+  }
+
+  .no-media {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px;
+    color: #9e9e9e;
+  }
+
+  .no-media mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .media-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .media-preview {
+    position: relative;
+    height: 160px;
+    overflow: hidden;
+  }
+
+  .media-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+
+  .media-caption {
+    font-size: 13px;
+    color: #757575;
+    margin: 8px 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .media-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .cover-btn {
+    font-size: 12px;
+    height: 32px;
+    line-height: 32px;
+  }
+</style>

@@ -1,0 +1,334 @@
+<div class="page-header">
+  <h1>Skills</h1>
+</div>
+
+@if (isLoading()) {
+  <div class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+} @else {
+  <div class="skills-layout">
+    <!-- Left Panel: Categories -->
+    <div class="categories-panel">
+      <div class="panel-header">
+        <h2>Categories</h2>
+        <button mat-icon-button color="primary" (click)="openAddCategoryDialog()" matTooltip="Add Category">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+
+      @if (categories().length === 0) {
+        <div class="empty-state">
+          <mat-icon>category</mat-icon>
+          <p>No categories yet</p>
+        </div>
+      } @else {
+        <mat-nav-list>
+          @for (category of categories(); track category.id) {
+            <mat-list-item
+              (click)="selectCategory(category)"
+              [class.selected]="selectedCategory()?.id === category.id"
+              class="category-item"
+            >
+              @if (category.iconUrl) {
+                <img matListItemIcon [src]="category.iconUrl" [alt]="category.name" class="cat-icon-img" />
+              } @else {
+                <mat-icon matListItemIcon>category</mat-icon>
+              }
+              <span matListItemTitle>{{ category.name }}</span>
+              <span matListItemMeta class="badge">{{ (category.skills || []).length }}</span>
+              <div matListItemMeta class="category-actions">
+                <button
+                  mat-icon-button
+                  (click)="openEditCategoryDialog(category); $event.stopPropagation()"
+                  matTooltip="Edit"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="deleteCategory(category); $event.stopPropagation()"
+                  matTooltip="Delete"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </mat-list-item>
+          }
+        </mat-nav-list>
+      }
+    </div>
+
+    <!-- Right Panel: Skills for selected category -->
+    <div class="skills-panel">
+      @if (!selectedCategory()) {
+        <div class="empty-state centered">
+          <mat-icon>touch_app</mat-icon>
+          <p>Select a category to manage its skills</p>
+        </div>
+      } @else {
+        <div class="panel-header">
+          <h2>{{ selectedCategory()!.name }} Skills</h2>
+        </div>
+
+        <div class="skills-list">
+          @if ((selectedCategory()!.skills || []).length === 0) {
+            <div class="empty-state">
+              <mat-icon>star_border</mat-icon>
+              <p>No skills in this category</p>
+            </div>
+          } @else {
+            @for (skill of selectedCategory()!.skills; track skill.id) {
+              <div class="skill-item">
+                <div class="skill-info">
+                  @if (skill.iconUrl) {
+                    <img [src]="skill.iconUrl" [alt]="skill.name" class="skill-icon-img" />
+                  }
+                  <span class="skill-name">{{ skill.name }}</span>
+                  <mat-chip [color]="getLevelColor(skill.level)" selected class="level-chip">
+                    {{ skill.level || 'N/A' }}
+                  </mat-chip>
+                  @if (skill.yearsExperience) {
+                    <span class="years">{{ skill.yearsExperience }} yr{{ skill.yearsExperience > 1 ? 's' : '' }}</span>
+                  }
+                </div>
+                <div class="skill-actions">
+                  <button mat-icon-button (click)="openEditSkillDialog(skill)" matTooltip="Edit skill">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteSkill(skill)" matTooltip="Delete skill">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </div>
+            }
+          }
+        </div>
+
+        <mat-divider class="divider"></mat-divider>
+
+        <mat-card class="add-skill-card">
+          <mat-card-header>
+            <mat-card-title>Add Skill</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <form [formGroup]="addSkillForm" (ngSubmit)="addSkill()" class="add-skill-form">
+              <mat-form-field appearance="outline">
+                <mat-label>Skill Name</mat-label>
+                <input matInput formControlName="name" />
+                @if (addSkillForm.get('name')?.hasError('required') && addSkillForm.get('name')?.touched) {
+                  <mat-error>Name is required</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Level</mat-label>
+                <mat-select formControlName="level">
+                  <mat-option value="BEGINNER">Beginner</mat-option>
+                  <mat-option value="INTERMEDIATE">Intermediate</mat-option>
+                  <mat-option value="ADVANCED">Advanced</mat-option>
+                  <mat-option value="EXPERT">Expert</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Years of Experience</mat-label>
+                <input matInput type="number" formControlName="yearsExperience" min="0" />
+              </mat-form-field>
+
+              <div class="icon-upload-row">
+                <input
+                  #addSkillFileInput
+                  type="file"
+                  accept="image/*"
+                  (change)="onAddSkillFile($event)"
+                  hidden
+                />
+                <button type="button" mat-stroked-button (click)="addSkillFileInput.click()">
+                  <mat-icon>upload</mat-icon>
+                  {{ addSkillIconFile() ? addSkillIconFile()!.name : 'Icon (optional)' }}
+                </button>
+              </div>
+
+              <button mat-flat-button color="primary" type="submit">
+                <mat-icon>add</mat-icon>
+                Add Skill
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  </div>
+}
+
+<style>
+  .page-header {
+    margin-bottom: 24px;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    padding: 64px;
+  }
+
+  .skills-layout {
+    display: grid;
+    grid-template-columns: 30% 1fr;
+    gap: 16px;
+    min-height: 500px;
+  }
+
+  .categories-panel,
+  .skills-panel {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .panel-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .category-item {
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .category-item:hover {
+    background-color: rgba(0,0,0,.04);
+  }
+
+  .category-item.selected {
+    background-color: rgba(103, 58, 183, 0.1);
+  }
+
+  .badge {
+    background-color: #e0e0e0;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    margin-right: 4px;
+  }
+
+  .category-actions {
+    display: flex;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px;
+    color: #9e9e9e;
+    text-align: center;
+  }
+
+  .empty-state.centered {
+    height: 100%;
+    justify-content: center;
+  }
+
+  .empty-state mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .skills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .skill-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+  }
+
+  .skill-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .skill-name {
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .level-chip {
+    font-size: 12px;
+    height: 24px;
+  }
+
+  .years {
+    font-size: 12px;
+    color: #757575;
+  }
+
+  .skill-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .divider {
+    margin: 16px 0;
+  }
+
+  .add-skill-card {
+    margin-top: 8px;
+  }
+
+  .add-skill-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .icon-upload-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .cat-icon-img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+
+  .skill-icon-img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+</style>

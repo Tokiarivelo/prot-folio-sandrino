@@ -1,0 +1,11 @@
+# Root-level gitignore
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db

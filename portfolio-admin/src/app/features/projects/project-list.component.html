@@ -1,0 +1,226 @@
+<div class="page-header">
+  <h1>Projects</h1>
+  <button mat-fab color="primary" (click)="navigateToNew()" aria-label="New project">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>
+
+@if (isLoading()) {
+  <div class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+} @else {
+  <div class="table-container mat-elevation-z2">
+    <table
+      mat-table
+      [dataSource]="projects()"
+      cdkDropList
+      (cdkDropListDropped)="onDrop($event)"
+      class="projects-table"
+    >
+      <!-- Drag Handle Column -->
+      <ng-container matColumnDef="drag">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let project">
+          <mat-icon cdkDragHandle class="drag-handle">drag_indicator</mat-icon>
+        </td>
+      </ng-container>
+
+      <!-- Order Column -->
+      <ng-container matColumnDef="order">
+        <th mat-header-cell *matHeaderCellDef>#</th>
+        <td mat-cell *matCellDef="let project">{{ project.displayOrder ?? '-' }}</td>
+      </ng-container>
+
+      <!-- Title Column -->
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Title</th>
+        <td mat-cell *matCellDef="let project">
+          <strong>{{ project.title }}</strong>
+          @if (project.shortDescription) {
+            <p class="project-desc">{{ project.shortDescription }}</p>
+          }
+        </td>
+      </ng-container>
+
+      <!-- Status Column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let project">
+          <mat-chip [class]="project.status === 'PUBLISHED' ? 'chip-published' : 'chip-draft'">
+            {{ project.status }}
+          </mat-chip>
+        </td>
+      </ng-container>
+
+      <!-- Tags Column -->
+      <ng-container matColumnDef="tags">
+        <th mat-header-cell *matHeaderCellDef>Tags</th>
+        <td mat-cell *matCellDef="let project">
+          <div class="tags-cell">
+            @for (pt of (project.projectTags || []).slice(0, 3); track pt.tag.id) {
+              <mat-chip class="tag-chip">{{ pt.tag.name }}</mat-chip>
+            }
+            @if ((project.projectTags || []).length > 3) {
+              <span class="more-tags">+{{ (project.projectTags || []).length - 3 }}</span>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Actions Column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let project">
+          <button
+            mat-icon-button
+            color="primary"
+            (click)="navigateToEdit(project)"
+            matTooltip="Edit project"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            color="warn"
+            (click)="deleteProject(project)"
+            matTooltip="Delete project"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        cdkDrag
+        [cdkDragData]="row"
+        class="project-row"
+      ></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell no-data" colspan="6">
+          <div class="no-data-content">
+            <mat-icon>work_off</mat-icon>
+            <p>No projects yet. Click the + button to create one.</p>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+}
+
+<style>
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    padding: 64px;
+  }
+
+  .table-container {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .projects-table {
+    width: 100%;
+  }
+
+  .drag-handle {
+    cursor: grab;
+    color: #9e9e9e;
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .project-row {
+    cursor: default;
+  }
+
+  .project-row:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .project-desc {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #757575;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chip-published {
+    background-color: #e8f5e9 !important;
+    color: #2e7d32 !important;
+  }
+
+  .chip-draft {
+    background-color: #fff8e1 !important;
+    color: #f57f17 !important;
+  }
+
+  .tags-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .tag-chip {
+    font-size: 11px;
+    min-height: 24px;
+    padding: 0 8px;
+  }
+
+  .more-tags {
+    font-size: 12px;
+    color: #757575;
+  }
+
+  .no-data {
+    padding: 48px;
+    text-align: center;
+  }
+
+  .no-data-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #9e9e9e;
+  }
+
+  .no-data-content mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .cdk-drag-preview {
+    box-shadow: 0 5px 5px -3px rgba(0,0,0,.2), 0 8px 10px 1px rgba(0,0,0,.14), 0 3px 14px 2px rgba(0,0,0,.12);
+  }
+
+  .cdk-drag-placeholder {
+    opacity: 0.4;
+    background: #e0e0e0;
+  }
+</style>

@@ -1,116 +1,116 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
+import { Prisma } from '@prisma/client';
+import type { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 
 @Injectable()
 export class ContactService {
-  constructor(
-    private prisma: PrismaService,
-    private emailService: EmailService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(
-    createContactMessageDto: CreateContactMessageDto,
+    dto: CreateContactMessageDto,
     ipAddress?: string,
     userAgent?: string,
   ) {
-    const { name, email, subject, message } = createContactMessageDto;
+    let recipientId = dto.recipientId;
 
-    // Save message to database
-    const contactMessage = await this.prisma.contactMessage.create({
+    if (!recipientId) {
+      const firstAdmin = await this.prisma.adminUser.findFirst({
+        orderBy: { createdAt: 'asc' },
+      });
+      recipientId = firstAdmin?.id;
+    }
+
+    return this.prisma.contactMessage.create({
       data: {
-        name,
-        email,
-        subject: subject || 'Contact Form Submission',
-        message,
+        name: dto.name,
+        email: dto.email,
+        subject: dto.subject,
+        message: dto.message,
+        userId: recipientId,
         ipAddress,
         userAgent,
       },
     });
-
-    // Send notification email to admin
-    try {
-      await this.emailService.sendContactNotification(
-        name,
-        email,
-        subject || 'Contact Form Submission',
-        message,
-      );
-    } catch (error) {
-      console.error('Failed to send admin notification:', error);
-    }
-
-    // Send confirmation email to user
-    try {
-      await this.emailService.sendContactConfirmation(name, email);
-    } catch (error) {
-      console.error('Failed to send confirmation email:', error);
-    }
-
-    return {
-      success: true,
-      message: 'Your message has been sent successfully',
-      id: contactMessage.id,
-    };
   }
 
-  async findAll(page = 1, limit = 20, isRead?: boolean) {
+  async findAll(
+    user: AuthenticatedUser,
+    page: number = 1,
+    limit: number = 20,
+    isRead?: boolean,
+  ) {
     const skip = (page - 1) * limit;
+    const where: Prisma.ContactMessageWhereInput = {};
 
-    const where = isRead !== undefined ? { isRead } : {};
+    if (isRead !== undefined) {
+      where.isRead = isRead;
+    }
 
-    const [messages, total] = await Promise.all([
+    if (user.role !== 'ADMIN') {
+      where.userId = user.userId;
+    }
+
+    const [data, total, unreadCount] = await Promise.all([
       this.prisma.contactMessage.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.contactMessage.count({ where }),
+      this.prisma.contactMessage.count({
+        where: { ...where, isRead: false },
+      }),
     ]);
 
     return {
-      data: messages,
+      data,
       meta: {
         total,
         page,
         limit,
         totalPages: Math.ceil(total / limit),
       },
+      unreadCount,
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: AuthenticatedUser) {
     const message = await this.prisma.contactMessage.findUnique({
       where: { id },
     });
 
     if (!message) {
-      throw new NotFoundException('Message not found');
+      throw new NotFoundException(`Message with ID ${id} not found`);
+    }
+
+    if (user.role !== 'ADMIN' && message.userId !== user.userId) {
+      throw new ForbiddenException('You do not have access to this message');
     }
 
     return message;
   }
 
-  async markAsRead(id: string) {
-    try {
-      return await this.prisma.contactMessage.update({
-        where: { id },
-        data: { isRead: true },
-      });
-    } catch {
-      throw new NotFoundException('Message not found');
-    }
+  async markAsRead(id: string, user: AuthenticatedUser) {
+    await this.findOne(id, user);
+
+    return this.prisma.contactMessage.update({
+      where: { id },
+      data: { isRead: true },
+    });
   }
 
-  async remove(id: string) {
-    try {
-      return await this.prisma.contactMessage.delete({
-        where: { id },
-      });
-    } catch {
-      throw new NotFoundException('Message not found');
-    }
+  async remove(id: string, user: AuthenticatedUser) {
+    await this.findOne(id, user);
+
+    return this.prisma.contactMessage.delete({
+      where: { id },
+    });
   }
 }

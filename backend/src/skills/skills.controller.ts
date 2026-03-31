@@ -10,6 +10,7 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -18,6 +19,8 @@ import {
   ApiBearerAuth,
   ApiConsumes,
   ApiBody,
+  ApiQuery,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import { SkillsService } from './skills.service';
 import { CreateSkillDto } from './dto/create-skill.dto';
@@ -25,6 +28,8 @@ import { UpdateSkillDto } from './dto/update-skill.dto';
 import { CreateSkillCategoryDto } from './dto/create-skill-category.dto';
 import { UpdateSkillCategoryDto } from './dto/update-skill-category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 
 @ApiTags('Skills')
 @Controller('skills')
@@ -58,24 +63,46 @@ export class SkillsController {
   })
   createSkill(
     @Body() createSkillDto: CreateSkillDto,
+    @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.skillsService.createSkill(createSkillDto, file);
+    return this.skillsService.createSkill(createSkillDto, user.userId, file);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all skills (Public)' })
-  findAllSkills(@Query('categoryId') categoryId?: string) {
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all skills (Public/Auth)' })
+  @ApiQuery({ name: 'categoryId', required: false, type: String })
+  @ApiQuery({ name: 'username', required: false, type: String })
+  @ApiQuery({ name: 'targetUserId', required: false, type: String })
+  @ApiOkResponse({ description: 'Array of skills' })
+  findAllSkills(
+    @Query('categoryId') categoryId?: string,
+    @Query('username') username?: string,
+    @Query('targetUserId') targetUserId?: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
     if (categoryId) {
-      return this.skillsService.findSkillsByCategory(categoryId);
+      return this.skillsService.findSkillsByCategory(
+        categoryId,
+        user,
+        username,
+        targetUserId,
+      );
     }
-    return this.skillsService.findAllSkills();
+    return this.skillsService.findAllSkills(user, username, targetUserId);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get skill by ID (Public)' })
-  findOneSkill(@Param('id') id: string) {
-    return this.skillsService.findOneSkill(id);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get skill by ID (Public/Auth)' })
+  findOneSkill(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    return this.skillsService.findOneSkill(id, user);
   }
 
   @Patch(':id')
@@ -102,19 +129,23 @@ export class SkillsController {
     },
   })
   updateSkill(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateSkillDto: UpdateSkillDto,
+    @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.skillsService.updateSkill(id, updateSkillDto, file);
+    return this.skillsService.updateSkill(id, updateSkillDto, user, file);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete skill (Admin)' })
-  removeSkill(@Param('id') id: string) {
-    return this.skillsService.removeSkill(id);
+  removeSkill(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.skillsService.removeSkill(id, user);
   }
 
   // Skill Categories endpoints
@@ -140,21 +171,44 @@ export class SkillsController {
   })
   createCategory(
     @Body() createSkillCategoryDto: CreateSkillCategoryDto,
+    @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.skillsService.createCategory(createSkillCategoryDto, file);
+    return this.skillsService.createCategory(
+      createSkillCategoryDto,
+      user.userId,
+      file,
+    );
   }
 
   @Get('categories/all')
-  @ApiOperation({ summary: 'Get all skill categories with skills (Public)' })
-  findAllCategories() {
-    return this.skillsService.findAllCategories();
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get all skill categories with skills (Public/Auth)',
+  })
+  @ApiQuery({ name: 'username', required: false, type: String })
+  @ApiQuery({ name: 'targetUserId', required: false, type: String })
+  @ApiOkResponse({
+    description: 'Array of skill categories with nested skills',
+  })
+  findAllCategories(
+    @Query('username') username?: string,
+    @Query('targetUserId') targetUserId?: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    return this.skillsService.findAllCategories(user, username, targetUserId);
   }
 
   @Get('categories/:id')
-  @ApiOperation({ summary: 'Get skill category by ID (Public)' })
-  findOneCategory(@Param('id') id: string) {
-    return this.skillsService.findOneCategory(id);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get skill category by ID (Public/Auth)' })
+  findOneCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    return this.skillsService.findOneCategory(id, user);
   }
 
   @Patch('categories/:id')
@@ -177,18 +231,27 @@ export class SkillsController {
     },
   })
   updateCategory(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateSkillCategoryDto: UpdateSkillCategoryDto,
+    @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.skillsService.updateCategory(id, updateSkillCategoryDto, file);
+    return this.skillsService.updateCategory(
+      id,
+      updateSkillCategoryDto,
+      user,
+      file,
+    );
   }
 
   @Delete('categories/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete skill category (Admin)' })
-  removeCategory(@Param('id') id: string) {
-    return this.skillsService.removeCategory(id);
+  removeCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.skillsService.removeCategory(id, user);
   }
 }

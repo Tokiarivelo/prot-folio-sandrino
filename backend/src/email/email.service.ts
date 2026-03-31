@@ -21,17 +21,18 @@ export class EmailService {
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    this.brevoApiKey = this.configService.get('BREVO_API_KEY') || '';
-    this.senderEmail = this.configService.get('BREVO_SENDER_EMAIL') || '';
+    this.brevoApiKey = this.configService.get<string>('BREVO_API_KEY') || '';
+    this.senderEmail =
+      this.configService.get<string>('BREVO_SENDER_EMAIL') || '';
     this.senderName =
-      this.configService.get('BREVO_SENDER_NAME') || 'Portfolio';
+      this.configService.get<string>('BREVO_SENDER_NAME') || 'Portfolio';
   }
 
   async sendEmail(params: SendEmailParams): Promise<void> {
     const { to, subject, htmlContent, textContent } = params;
 
     try {
-      const response = await axios.post(
+      const response = await axios.post<{ messageId: string }>(
         'https://api.brevo.com/v3/smtp/email',
         {
           sender: {
@@ -66,8 +67,10 @@ export class EmailService {
       });
 
       this.logger.log(`Email sent successfully to ${to}`);
-    } catch (error) {
-      this.logger.error(`Failed to send email to ${to}:`, error.message);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to send email to ${to}:`, errorMessage);
 
       // Log failure
       await this.logEmail({
@@ -76,7 +79,7 @@ export class EmailService {
         subject,
         body: htmlContent,
         status: 'failed',
-        errorMsg: error.message,
+        errorMsg: errorMessage,
       });
 
       throw error;
@@ -89,7 +92,8 @@ export class EmailService {
     subject: string,
     message: string,
   ): Promise<void> {
-    const adminEmail = this.configService.get('BREVO_ADMIN_EMAIL') || '';
+    const adminEmail =
+      this.configService.get<string>('BREVO_ADMIN_EMAIL') || '';
 
     const htmlContent = `
       <h2>New Contact Form Submission</h2>

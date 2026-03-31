@@ -1,0 +1,41 @@
+/* Global styles */
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Fix mat-card spacing */
+mat-card-content {
+  padding: 16px !important;
+}
+
+/* Snackbar success */
+.snack-success {
+  background-color: #43a047;
+  color: white;
+}
+
+/* Ensure router outlet fills viewport */
+app-root {
+  display: block;
+  height: 100%;
+}
+
+/* ── Sidenav dark theme overrides ──────────────────────────────────────────── */
+/* Angular Material renders sidenav background via --mat-sidenav-container-background-color */
+mat-sidenav.sidenav {
+  --mat-sidenav-container-background-color: #1a1a2e;
+  --mat-sidenav-container-text-color: rgba(255, 255, 255, 0.87);
+  /* List item text on dark background */
+  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.87);
+  --mdc-list-list-item-supporting-text-color: rgba(255, 255, 255, 0.6);
+  --mdc-list-list-item-leading-icon-color: rgba(255, 255, 255, 0.7);
+  --mat-list-active-indicator-color: rgba(124, 77, 255, 0.2);
+}
